@@ -1,0 +1,46 @@
+include(FetchContent)
+
+cmake_minimum_required(VERSION 3.30)
+project("game-programming")
+
+set(CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED 20)
+set(CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# glfw
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY  https://github.com/glfw/glfw.git
+    GIT_TAG         7b6aead9fb88b3623e3b3725ebb42670cbe4c579
+    SOURCE_DIR      vendor/glfw
+)
+set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# glm
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_TAG 	    bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+    SOURCE_DIR vendor/glm
+)
+
+# glad 
+set(GLAD_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/vendor/glad/include)
+add_subdirectory(vendor/glad)
+
+# spdlog
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY	https://github.com/gabime/spdlog.git
+	GIT_TAG 	    6fa36017cfd5731d617e1a934f0e5ea9c4445b13
+    SOURCE_DIR vendor/spdlog
+)
+
+FetchContent_MakeAvailable(glfw glm spdlog)
+
+set(COMMON_HEADER_DIR ${CMAKE_SOURCE_DIR}/projects/common)
+
+add_subdirectory(projects/week1)
