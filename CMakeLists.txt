@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.30)
 project("game-programming")
 
 set(CXX_STANDARD 20)
-set(CXX_STANDARD_REQUIRED 20)
+set(CXX_STANDARD_REQUIRED TRUE)
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
