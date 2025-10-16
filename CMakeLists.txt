@@ -44,7 +44,11 @@ FetchContent_MakeAvailable(glfw glm spdlog)
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/vendor/imgui)
 
 set(COMMON_HEADER_DIR ${CMAKE_SOURCE_DIR}/projects/common)
+set(RESOURCES_DIR ${CMAKE_SOURCE_DIR}/resources)
 
 add_subdirectory(projects/week1)
 add_subdirectory(projects/week1-copy)
 add_subdirectory(projects/week2)
+add_subdirectory(projects/week4)
+add_subdirectory(projects/week5)
+add_subdirectory(projects/week5-2)

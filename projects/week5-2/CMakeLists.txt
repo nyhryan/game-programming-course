@@ -1,5 +1,5 @@
-set(TARGET week2)
-add_executable(${TARGET} solarsystem_sun_2planets_hw.cpp)
+set(TARGET week5-2)
+add_executable(${TARGET} j.shpere_phong_shading_2lights_cartoon.cpp)
 
 target_compile_definitions(${TARGET} PRIVATE
     RESOURCE_PATH_PREFIX="${RESOURCES_DIR}/"
@@ -13,13 +13,6 @@ target_sources(${TARGET}
         ${COMMON_HEADER_DIR}/shader.cpp
         ${COMMON_HEADER_DIR}/utility.hpp
         ${COMMON_HEADER_DIR}/type.hpp
-        ${IMGUI_DIR}/imgui.cpp
-        ${IMGUI_DIR}/imgui_demo.cpp
-        ${IMGUI_DIR}/imgui_draw.cpp
-        ${IMGUI_DIR}/imgui_tables.cpp
-        ${IMGUI_DIR}/imgui_widgets.cpp
-        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
 )
 
 set_target_properties(${TARGET} PROPERTIES 

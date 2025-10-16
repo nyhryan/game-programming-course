@@ -1,10 +1,13 @@
 #pragma once
 
 #include <glad/glad.h>
+
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 #include <filesystem>
+#include <string>
 
 namespace GameProgramming::Shader
 {
@@ -75,7 +78,7 @@ public:
     ShaderObject(ShaderObject &&) = delete;
     ShaderObject operator=(ShaderObject &&) = delete;
 
-    [[nodiscard]] GLuint get() const noexcept
+    [[nodiscard]] GLuint getID() const noexcept
     {
         return m_shader;
     }

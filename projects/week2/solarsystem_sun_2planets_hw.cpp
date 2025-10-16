@@ -25,16 +25,20 @@
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow* window);
 void init_sphere(float **, int *, int *);
 void init_textures();
 
-#define TEXTURE_PATH_PREFIX ""
-// #define TEXTURE_PATH_PREFIX "..\\textures\\solarsystem\\"
+#ifndef RESOURCE_PATH_PREFIX
+#define RESOURCE_PATH_PREFIX ""
+#endif
 
 // settings
-constexpr u32 SCR_WIDTH = 1000;
-constexpr u32 SCR_HEIGHT = 1000;
+constexpr u32 SCR_WIDTH = 800;
+constexpr u32 SCR_HEIGHT = 800;
+
+bool isF1KeyPressed = false;
+bool showImGuiOverlay = true;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 50.0f));
@@ -47,53 +51,89 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(21.2f, 21.0f, 12.0f);
+// glm::vec3 lightPos(21.2f, 21.0f, 12.0f);
+glm::vec3 lightPos(0.f, 0.f, 0.f);
 
 // the sun, planets, and moon
 // 자전주기(일): 태양 25.38일, 수성 58.6462, 금성	-243.0185, 지구	0.99726963,	(달 27.3216)
 // 화성은 1.02595676, 목성은 0.410일, 토성은 0.426일, 천왕성은 0.718일, 해왕성은 0.669일
 // 공전주기(일): 수성 87.97, 금성 224.7, 지구 365.26, (달 27.322) 화성 686.96, 목성 4333.29, 토성
 // 10,756.20,	 천왕성 30,707.49, 	해왕성 60,223.35 rotation periods of the sun, planets, and moon
-const float rotp_sun = 25.38f;
-const float rotp_mercury = 58.6462f;
-const float rotp_venus = 243.0185f;
-// const float rotp_earth = 0.99726963f;
-// const float rotp_moon = 27.3216f;
-// const float rotp_mars = 1.02595676f;
-// const float rotp_jupiter = 0.410f;
-// const float rotp_saturn = 0.426f;
-// const float rotp_uranus = 0.718f;
-// const float rotp_neptune = 0.669;
+constexpr float rotp_sun = 25.38f;
+constexpr float rotp_mercury = 58.6462f;
+constexpr float rotp_venus = 243.0185f;
+constexpr float rotp_earth = 0.99726963f;
+constexpr float rotp_moon = 27.3216f;
+constexpr float rotp_mars = 1.02595676f;
+constexpr float rotp_jupiter = 0.410f;
+constexpr float rotp_saturn = 0.426f;
+constexpr float rotp_uranus = 0.718f;
+constexpr float rotp_neptune = 0.669;
 
 // revolution periods of the planets, and moon
-const float revp_mercury = 87.97f;
-const float revp_venus = 224.7f;
-// const float revp_earth = 365.26f;
-// const float revp_moon = 27.322f;
-// const float revp_mars = 686.96f;
-// const float revp_jupiter = 4333.29f;
-// const float revp_saturn = 10756.20f;
-// const float revp_uranus = 30707.49f;
-// const float revp_neptune = 60223.35;
+constexpr float revp_mercury = 87.97f;
+constexpr float revp_venus = 224.7f;
+constexpr float revp_earth = 365.26f;
+constexpr float revp_moon = 27.322f;
+constexpr float revp_mars = 686.96f;
+constexpr float revp_jupiter = 4333.29f;
+constexpr float revp_saturn = 10756.20f;
+constexpr float revp_uranus = 30707.49f;
+constexpr float revp_neptune = 60223.35;
 
 // speed of rotation and revolution
-const float rot_speed = 20.0f;
+constexpr float rot_speed = 20.0f;
 
 // scales of the planets, and moon
-const float radi_sun = 6.0f;      // 696340.0f;
-const float radi_mercury = 0.24f; // 2439.7f;
-const float radi_venus = 0.60f;   // 6051.8f;
-// const float radi_earth = 0.63f;	//6371.0f;
-// const float radi_moon = 0.17f;	//1737.4f;
-// const float radi_mars = 0.3389f;	//3389.5f;
-// const float radi_jupiter = 1.0f; // 69911.0f;
-// const float radi_saturn = 0.9f; // 58232.0f;
-// const float radi_uranus = 0.43f; // 25362.0f;
-// const float radi_neptune = 0.4f; // 24622.0f;
+constexpr float radi_sun = 6.0f;      // 696340.0f;
+constexpr float radi_mercury = 0.24f; // 2439.7f;
+constexpr float radi_venus = 0.60f;   // 6051.8f;
+constexpr float radi_earth = 0.63f;	//6371.0f;
+constexpr float radi_moon = 0.17f;	//1737.4f;
+constexpr float radi_mars = 0.3389f;	//3389.5f;
+constexpr float radi_jupiter = 1.0f; // 69911.0f;
+constexpr float radi_saturn = 0.9f; // 58232.0f;
+constexpr float radi_uranus = 0.43f; // 25362.0f;
+constexpr float radi_neptune = 0.4f; // 24622.0f;
 
 // textures
 GLuint texture_sun, texture_mercury, texture_venus, texture_earth, texture_moon;
 GLuint texture_mars, texture_jupiter, texture_saturn, texture_uranus, texture_neptune;
+
+void drawPlanet(
+    float distance,
+    float radius,
+    float revolution_period,
+    float rotation_period,
+    const glm::mat4 &sun_model,
+    const GameProgramming::Shader::ShaderProgram &_planetShader,
+    GLuint textureID,
+    GLuint &sphereVAO, 
+    int &nSphereVert)
+{
+    // mercury
+    // -----------
+    // world transformation
+    // float dist = radi_sun + 3 * radius;
+    glm::mat4 model = sun_model;
+    model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revolution_period,
+                        glm::vec3(0.0f, 1.0f, 0.0f)); // the revolution of the earth
+    model = glm::translate(
+        model, glm::vec3(distance, 0.0f, 0.0f)); // the translation of the earth from the sun
+    model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotation_period,
+                        glm::vec3(0.0f, 1.0f, 0.0f)); // the rotation of the earth
+    model = glm::scale(model, glm::vec3(radius));
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    _planetShader.setUniformMatrix4f("model", model);
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // render the sphere
+    glBindVertexArray(sphereVAO);
+    glDrawArrays(GL_TRIANGLES, 0, nSphereVert);
+}
 
 int main()
 {
@@ -120,7 +160,7 @@ int main()
 
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
 
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH * main_scale, SCR_HEIGHT * main_scale, "Week 1",
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH * main_scale, SCR_HEIGHT * main_scale, "2291012 남윤혁",
                                           nullptr, nullptr);
     if (window == nullptr)
     {
@@ -133,9 +173,6 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {
         LOG_ERROR("Failed to load GL functions");
@@ -143,8 +180,8 @@ int main()
         exit(EXIT_FAILURE);
     }
     glfwSwapInterval(1);
-    LOG_DEBUG("GL_VERSION: {}", reinterpret_cast<const char *>(glGetString(GL_VERSION)));
 
+    // ImGUI setup
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -152,6 +189,8 @@ int main()
         ImGui::StyleColorsDark();
         ImGuiStyle &style = ImGui::GetStyle();
         style.ScaleAllSizes(main_scale);
+        style.WindowRounding = 4.0f;
+        style.FrameRounding = 2.0f;
         style.FontScaleDpi = main_scale;
 
         ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -164,12 +203,16 @@ int main()
 
     // build and compile our shader zprogram
     // ------------------------------------
-    GameProgramming::Shader::ShaderProgram _planetShader{"solarsystem_planet.vs",
-                                                         "solarsystem_planet.fs"};
+    GameProgramming::Shader::ShaderProgram _planetShader{
+        RESOURCE_PATH_PREFIX "shaders/solarsystem_planet.vs",
+        RESOURCE_PATH_PREFIX "shaders/solarsystem_planet.fs"
+    };
 
     // Shader planetShader("solarsystem_color.vs", "solarsystem_color.fs");
-    GameProgramming::Shader::ShaderProgram _starShader{"solarsystem_star.vs",
-                                                       "solarsystem_star.fs"};
+    GameProgramming::Shader::ShaderProgram _starShader{
+        RESOURCE_PATH_PREFIX "shaders/solarsystem_star.vs",
+        RESOURCE_PATH_PREFIX "shaders/solarsystem_star.fs"
+    };
 
     // sphere VAO and VBO
     // std::vector <float> data;
@@ -216,24 +259,13 @@ int main()
             continue;
         }
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        float f = ImGui::GetFontSize();
-        ImGui::SetNextWindowSize({f * 10.f, f * 10.f});
-        ImGui::Begin("Solar System!");
-        ImGui::End();
+        processInput(window);
 
         // per-frame time logic
         // --------------------
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
-        // input
-        // -----
-        processInput(window);
 
         // render
         // ------
@@ -250,32 +282,13 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         _starShader.setUniformMatrix4f("projection", projection);
         _starShader.setUniformMatrix4f("view", view);
-        // eye position
-        _starShader.setUniformVec3("eyePos", camera.Position);
-
-        // draw the sphere object
-        // light properties
-        glm::vec3 lightColor(1.0, 1.0, 1.0);
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.8f);   // decrease the influence
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influenc
-        _starShader.setUniformVec3("light.ambient", ambientColor);
-        _starShader.setUniformVec3("light.diffuse", diffuseColor);
-        _starShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
-        _starShader.setUniformVec3("light.position", lightPos);
-        // material properties
-        _starShader.setUniformVec3("material.ambient", 0.5f, 0.5f, 0.5f);
-        _starShader.setUniformVec3("material.diffuse", 0.9f, 0.9f, 0.9f);
-        _starShader.setUniformVec3(
-            "material.specular", 0.5f, 0.5f,
-            0.5f); // specular lighting doesn't have full effect on this object's material
-        _starShader.setUniformFloat("material.shininess", 20.0f);
 
         // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(40.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::mat4 model = glm::identity<glm::mat4>();
+        model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat4 sun_model = model;
-        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_sun,
-                            glm::vec3(0.0f, 1.0f, 0.0f)); // the rotation of the sun
+        // the rotation of the sun
+        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_sun, glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(radi_sun, radi_sun, radi_sun));
         _starShader.setUniformMatrix4f("model", model);
@@ -299,10 +312,10 @@ int main()
         _planetShader.setUniformVec3("eyePos", camera.Position);
 
         // draw the sphere object
-        // light properties
-        // glm::vec3 lightColor(1.0, 1.0, 1.0);;
-        // glm::vec3 diffuseColor = lightColor * glm::vec3(0.8f); // decrease the influence
-        // glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influenc
+       // light properties
+        glm::vec3 lightColor(1.0, 1.0, 1.0);
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.8f);   // decrease the influence
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influenc
         _planetShader.setUniformVec3("light.ambient", ambientColor);
         _planetShader.setUniformVec3("light.diffuse", diffuseColor);
         _planetShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
@@ -319,6 +332,8 @@ int main()
         // -----------
         // world transformation
         float dist = radi_sun + 3 * radi_mercury;
+        drawPlanet(dist, radi_mercury, revp_mercury, rotp_mercury, sun_model, _planetShader, texture_mercury, sphereVAO, nSphereVert);
+/*         float dist = radi_sun + 3 * radi_mercury;
         model = sun_model;
         model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_mercury,
                             glm::vec3(0.0f, 1.0f, 0.0f)); // the revolution of the earth
@@ -336,13 +351,15 @@ int main()
 
         // render the sphere
         glBindVertexArray(sphereVAO);
-        glDrawArrays(GL_TRIANGLES, 0, nSphereVert);
+        glDrawArrays(GL_TRIANGLES, 0, nSphereVert); */
 
         // venus
         // -----------
         // world transformation
         dist = dist + 3 * radi_venus;
-        model = sun_model;
+        drawPlanet(dist, radi_venus, revp_venus, rotp_venus, sun_model, _planetShader, texture_venus, sphereVAO, nSphereVert);
+
+/*         model = sun_model;
         model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_venus,
                             glm::vec3(0.0f, 1.0f, 0.0f)); // the revolution of the earth
         model = glm::translate(
@@ -359,32 +376,94 @@ int main()
 
         // render the sphere
         glBindVertexArray(sphereVAO);
-        glDrawArrays(GL_TRIANGLES, 0, nSphereVert);
+        glDrawArrays(GL_TRIANGLES, 0, nSphereVert); */
 
         // earth
         // -----------
+        dist = dist + 3 * radi_earth;
+        // drawPlanet(dist, radi_earth, revp_earth, rotp_earth, sun_model, _planetShader, texture_earth, sphereVAO, nSphereVert);
+        model = sun_model;
+        // the revolution of the earth
+        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_earth, glm::vec3(0.0f, 1.0f, 0.0f));
+        // the translation of the earth from the sun
+        model = glm::translate(model, glm::vec3(dist, 0.0f, 0.0f)); 
+        glm::mat4 moon_center = model;
+        // the rotation of the earth
+        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_earth, glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(radi_earth, radi_earth, radi_earth));
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        _planetShader.setUniformMatrix4f("model", model);
+
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_earth);
+
+        // render the sphere
+        glBindVertexArray(sphereVAO);
+        glDrawArrays(GL_TRIANGLES, 0, nSphereVert);
 
         // moon
         // -----------
+        model = moon_center;
+        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_moon, glm::vec3(0.0f, 1.0f, 0.0f));
+        // model = glm::translate(model, glm::vec3(6 * radi_moon, 0.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(1.5f * radi_earth, 0.0f, 0.0f));
+        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_moon, glm::vec3(0.0f, 1.0f, 0.0f)); 
+        model = glm::scale(model, glm::vec3(radi_moon, radi_moon, radi_moon));
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        _planetShader.setUniformMatrix4f("model", model);
+
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_moon);
+
+        // render the sphere
+        glBindVertexArray(sphereVAO);
+        glDrawArrays(GL_TRIANGLES, 0, nSphereVert);
 
         // mars
         // -----------
+        dist = dist + 3 * radi_mars;
+        drawPlanet(dist, radi_mars, revp_mars, rotp_mars, sun_model, _planetShader, texture_mars, sphereVAO, nSphereVert);
 
         // jupiter
         // -----------
+        dist = dist + 3 * radi_jupiter;
+        drawPlanet(dist, radi_jupiter, revp_jupiter, rotp_jupiter, sun_model, _planetShader, texture_jupiter, sphereVAO, nSphereVert);
 
         // saturn
         // -----------
+        dist = dist + 3 * radi_saturn;
+        drawPlanet(dist, radi_saturn, revp_saturn, rotp_saturn, sun_model, _planetShader, texture_saturn, sphereVAO, nSphereVert);
 
         // uranus
         // -----------
+        dist = dist + 3 * radi_uranus;
+        drawPlanet(dist, radi_uranus, revp_uranus, rotp_uranus, sun_model, _planetShader, texture_uranus, sphereVAO, nSphereVert);
 
         // neptune
         // -----------
+        dist = dist + 3 * radi_neptune;
+        drawPlanet(dist, radi_neptune, revp_neptune, rotp_neptune, sun_model, _planetShader, texture_neptune, sphereVAO, nSphereVert);
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (showImGuiOverlay)
+        {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
 
+            if (ImGui::Begin("Solar System!", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Press F1 to toggle this overlay");
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 
+                       1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            }
+            ImGui::End();
+            
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        }
+        
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -407,8 +486,38 @@ int main()
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react
 // accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow* window)
 {
+    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+    {
+        if (!isF1KeyPressed)
+        {
+            showImGuiOverlay = !showImGuiOverlay;
+
+            if (showImGuiOverlay)
+            {
+                // Show cursor when ImGui overlay is active
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+            else
+            {
+                // Hide cursor for camera movement
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                firstMouse = true; // Reset mouse state
+            }
+            isF1KeyPressed = true;
+        }
+    }
+    else 
+    {
+        isF1KeyPressed = false;
+    }
+
+    ImGuiIO &io = ImGui::GetIO();
+    bool imguiWantsInput = showImGuiOverlay && (io.WantCaptureKeyboard || io.WantCaptureMouse);
+    if (imguiWantsInput) 
+        return;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -435,6 +544,10 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.WantCaptureMouse || showImGuiOverlay)
+        return;
+
     if (firstMouse)
     {
         lastX = xpos;
@@ -638,21 +751,21 @@ void loadTexture(GLuint &textureID, const char *path)
     }
     else
     {
-        LOG_ERROR("Failed to load texture");
+        LOG_ERROR("Failed to load texture at: {}", path);
     }
     stbi_image_free(data);
 }
 
 void init_textures()
 {
-    loadTexture(texture_sun,        TEXTURE_PATH_PREFIX "2k_sun.jpg");
-    loadTexture(texture_earth,      TEXTURE_PATH_PREFIX "2k_earth_daymap.jpg");
-    loadTexture(texture_moon,       TEXTURE_PATH_PREFIX "2k_moon.jpg");
-    loadTexture(texture_mercury,    TEXTURE_PATH_PREFIX "2k_mercury.jpg");
-    loadTexture(texture_venus,      TEXTURE_PATH_PREFIX "2k_venus_surface.jpg");
-    loadTexture(texture_mars,       TEXTURE_PATH_PREFIX "2k_mars.jpg");
-    loadTexture(texture_jupiter,    TEXTURE_PATH_PREFIX "2k_jupiter.jpg");
-    loadTexture(texture_saturn,     TEXTURE_PATH_PREFIX "2k_saturn.jpg");
-    loadTexture(texture_uranus,     TEXTURE_PATH_PREFIX "2k_uranus.jpg");
-    loadTexture(texture_neptune,    TEXTURE_PATH_PREFIX "2k_neptune.jpg");
+    loadTexture(texture_sun,        RESOURCE_PATH_PREFIX "textures/2k_sun.jpg");
+    loadTexture(texture_earth,      RESOURCE_PATH_PREFIX "textures/2k_earth_daymap.jpg");
+    loadTexture(texture_moon,       RESOURCE_PATH_PREFIX "textures/2k_moon.jpg");
+    loadTexture(texture_mercury,    RESOURCE_PATH_PREFIX "textures/2k_mercury.jpg");
+    loadTexture(texture_venus,      RESOURCE_PATH_PREFIX "textures/2k_venus_surface.jpg");
+    loadTexture(texture_mars,       RESOURCE_PATH_PREFIX "textures/2k_mars.jpg");
+    loadTexture(texture_jupiter,    RESOURCE_PATH_PREFIX "textures/2k_jupiter.jpg");
+    loadTexture(texture_saturn,     RESOURCE_PATH_PREFIX "textures/2k_saturn.jpg");
+    loadTexture(texture_uranus,     RESOURCE_PATH_PREFIX "textures/2k_uranus.jpg");
+    loadTexture(texture_neptune,    RESOURCE_PATH_PREFIX "textures/2k_neptune.jpg");
 }

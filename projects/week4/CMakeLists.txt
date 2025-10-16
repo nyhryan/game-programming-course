@@ -1,5 +1,5 @@
-set(TARGET week2)
-add_executable(${TARGET} solarsystem_sun_2planets_hw.cpp)
+set(TARGET week4)
+add_executable(${TARGET} main.cpp)
 
 target_compile_definitions(${TARGET} PRIVATE
     RESOURCE_PATH_PREFIX="${RESOURCES_DIR}/"

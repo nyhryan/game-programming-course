@@ -19,8 +19,8 @@ ShaderProgram::ShaderProgram(std::filesystem::path vertexShaderSrc, std::filesys
 {
     ShaderObject vertexShader{vertexShaderSrc, ShaderType::Vertex};
     ShaderObject fragmentShader{fragmentShaderSrc, ShaderType::Fragment};
-    glAttachShader(m_program, vertexShader.get());
-    glAttachShader(m_program, fragmentShader.get());
+    glAttachShader(m_program, vertexShader.getID());
+    glAttachShader(m_program, fragmentShader.getID());
     glLinkProgram(m_program);
 
     GLint isLinked{};
