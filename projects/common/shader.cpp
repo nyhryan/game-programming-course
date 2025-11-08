@@ -84,7 +84,7 @@ std::string ShaderLoader::loadShaderScript(const std::filesystem::path &src)
                                  canonical_path.filename().string()};
     }
 
-    std::stringstream ss;
+    std::stringstream ss{};
     ss << shaderFile.rdbuf();
     return ss.str();
 }
