@@ -11,16 +11,266 @@
 #include <glm/ext.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_opengl3.h>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-#include "shader.hpp"
-#include "logger.hpp"
-#include "type.hpp"
-#include "camera.h"
+#include <filesystem>
+#include <string>
+
+// Shader classes
+namespace GameProgramming::Shader
+{
+
+enum class ShaderType
+{
+    Vertex = GL_VERTEX_SHADER,
+    Fragment = GL_FRAGMENT_SHADER,
+    Geometry = GL_GEOMETRY_SHADER
+};
+
+class ShaderProgram
+{
+public:
+    ShaderProgram(std::filesystem::path vertexShaderSrc = "./shader.vert",
+                  std::filesystem::path fragmentShaderSrc = "./shader.frag");
+    ~ShaderProgram();
+    ShaderProgram(const ShaderProgram &) = delete;
+    ShaderProgram &operator=(const ShaderProgram &) = delete;
+    ShaderProgram(ShaderProgram &&) = delete;
+    ShaderProgram &operator=(ShaderProgram &&) = delete;
+
+    void use() const noexcept
+    {
+        glUseProgram(m_program);
+    }
+
+    [[nodiscard]] GLuint get() const noexcept
+    {
+        return m_program;
+    }
+    [[nodiscard]] GLint getUniformLocation(const char *uniformName) const noexcept
+    {
+        return glGetUniformLocation(m_program, uniformName);
+    }
+
+    void setUniformMatrix4f(const char *uniformName, const GLfloat *matrix) const noexcept
+    {
+        glUniformMatrix4fv(glGetUniformLocation(m_program, uniformName), 1, GL_FALSE, matrix);
+    }
+
+    void setUniformMatrix4f(const char *uniformName, const glm::mat4 &matrix) const noexcept
+    {
+        glUniformMatrix4fv(glGetUniformLocation(m_program, uniformName), 1, GL_FALSE,
+                           glm::value_ptr(matrix));
+    }
+
+    void setUniformVec3(const char *uniformName, const GLfloat *vector) const noexcept
+    {
+        glUniform3fv(glGetUniformLocation(m_program, uniformName), 1, vector);
+    }
+
+    void setUniformVec3(const char *uniformName, const glm::vec3 &vector) const noexcept
+    {
+        glUniform3fv(glGetUniformLocation(m_program, uniformName), 1, glm::value_ptr(vector));
+    }
+
+    void setUniformVec3(const char *uniformName, GLfloat x, GLfloat y, GLfloat z) const noexcept
+    {
+        glUniform3f(glGetUniformLocation(m_program, uniformName), x, y, z);
+    }
+
+    void setUniformFloat(const char *uniformName, const GLfloat value) const noexcept
+    {
+        glUniform1f(glad_glGetUniformLocation(m_program, uniformName), value);
+    }
+
+private:
+    GLuint m_program;
+};
+
+class ShaderObject
+{
+public:
+    ShaderObject(std::filesystem::path src, ShaderType shaderType);
+    ~ShaderObject();
+    ShaderObject(const ShaderObject &) = delete;
+    ShaderObject operator=(const ShaderObject &) = delete;
+    ShaderObject(ShaderObject &&) = delete;
+    ShaderObject operator=(ShaderObject &&) = delete;
+
+    [[nodiscard]] GLuint getID() const noexcept
+    {
+        return m_shader;
+    }
+
+private:
+    GLuint m_shader;
+    std::filesystem::path m_shaderPath;
+};
+
+class ShaderLoader
+{
+public:
+    static std::string loadShaderScript(const std::filesystem::path &src);
+};
+
+} // namespace GameProgramming::Shader
+
+// Camera class
+namespace
+{
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+// Defines several possible options for camera movement. Used as abstraction to stay away from
+// window-system specific input methods
+enum Camera_Movement
+{
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT
+};
+
+// Default camera values
+const float YAW = -90.0f;
+const float PITCH = 0.0f;
+// const float SPEED       =  2.5f;
+const float SPEED = 20.f;
+const float SENSITIVITY = 0.05f;
+const float ZOOM = 45.0f;
+
+// An abstract camera class that processes input and calculates the corresponding Euler Angles,
+// Vectors and Matrices for use in OpenGL
+class Camera
+{
+public:
+    // Camera Attributes
+    glm::vec3 Position;
+    glm::vec3 Front;
+    glm::vec3 Up;
+    glm::vec3 Right;
+    glm::vec3 WorldUp;
+    // Euler Angles
+    float Yaw;
+    float Pitch;
+    // Camera options
+    float MovementSpeed;
+    float MouseSensitivity;
+    float Zoom;
+
+    // Constructor with vectors
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+           glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH)
+        : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY),
+          Zoom(ZOOM)
+    {
+        Position = position;
+        WorldUp = up;
+        Yaw = yaw;
+        Pitch = pitch;
+        updateCameraVectors();
+    }
+    // Constructor with scalar values
+    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw,
+           float pitch)
+        : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY),
+          Zoom(ZOOM)
+    {
+        Position = glm::vec3(posX, posY, posZ);
+        WorldUp = glm::vec3(upX, upY, upZ);
+        Yaw = yaw;
+        Pitch = pitch;
+        updateCameraVectors();
+    }
+
+    // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
+    [[nodiscard]] glm::mat4 GetViewMatrix()
+    {
+        return glm::lookAt(Position, Position + Front, Up);
+    }
+
+    // Processes input received from any keyboard-like input system. Accepts input parameter in the
+    // form of camera defined ENUM (to abstract it from windowing systems)
+    void ProcessKeyboard(Camera_Movement direction, float deltaTime)
+    {
+        float velocity = MovementSpeed * deltaTime;
+        if (direction == FORWARD)
+            Position += Front * velocity;
+        if (direction == BACKWARD)
+            Position -= Front * velocity;
+        if (direction == LEFT)
+            Position -= Right * velocity;
+        if (direction == RIGHT)
+            Position += Right * velocity;
+    }
+
+    // Processes input received from a mouse input system. Expects the offset value in both the x
+    // and y direction.
+    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    {
+        xoffset *= MouseSensitivity;
+        yoffset *= MouseSensitivity;
+
+        Yaw += xoffset;
+        Pitch += yoffset;
+
+        // Make sure that when pitch is out of bounds, screen doesn't get flipped
+        if (constrainPitch)
+        {
+            if (Pitch > 89.0f)
+                Pitch = 89.0f;
+            if (Pitch < -89.0f)
+                Pitch = -89.0f;
+        }
+
+        // Update Front, Right and Up Vectors using the updated Euler angles
+        updateCameraVectors();
+    }
+
+    // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical
+    // wheel-axis
+    void ProcessMouseScroll(float yoffset)
+    {
+        if (Zoom >= 1.0f && Zoom <= 45.0f)
+            Zoom -= yoffset;
+        if (Zoom <= 1.0f)
+            Zoom = 1.0f;
+        if (Zoom >= 45.0f)
+            Zoom = 45.0f;
+    }
+
+private:
+    // Calculates the front vector from the Camera's (updated) Euler Angles
+    void updateCameraVectors()
+    {
+        // Calculate the new Front vector
+        glm::vec3 front;
+        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.y = sin(glm::radians(Pitch));
+        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        Front = glm::normalize(front);
+        // Also re-calculate the Right and Up vector
+        Right = glm::normalize(glm::cross(
+            Front, WorldUp)); // Normalize the vectors, because their length gets closer to 0 the
+                              // more you look up or down which results in slower movement.
+        Up = glm::normalize(glm::cross(Right, Front));
+    }
+};
+}
+
+#include <cstdint>
+
+using u8    = std::uint8_t;
+using u16   = std::uint16_t;
+using u32   = std::uint32_t;
+using i8    = std::int8_t;
+using i16   = std::int16_t;
+using i32   = std::int32_t;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
@@ -30,7 +280,7 @@ void init_sphere(float **, int *, int *);
 void init_textures();
 
 #ifndef RESOURCE_PATH_PREFIX
-#define RESOURCE_PATH_PREFIX ""
+#define RESOURCE_PATH_PREFIX "D:/Dev/Computer-Sceience/Year4/game-programming/resources"
 #endif
 
 // settings
@@ -145,7 +395,6 @@ int main()
 
     if (!glfwInit())
     {
-        LOG_ERROR("Failed to initialize GLFW");
         exit(EXIT_FAILURE);
     }
 
@@ -157,44 +406,25 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
-
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH * main_scale, SCR_HEIGHT * main_scale, "2291012 남윤혁",
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "2291012 남윤혁",
                                           nullptr, nullptr);
     if (window == nullptr)
     {
-        LOG_ERROR("Failed to create GLFW window");
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {
-        LOG_ERROR("Failed to load GL functions");
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
     glfwSwapInterval(1);
-
-    // ImGUI setup
-    {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-
-        ImGui::StyleColorsDark();
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.ScaleAllSizes(main_scale);
-        style.WindowRounding = 4.0f;
-        style.FrameRounding = 2.0f;
-        style.FontScaleDpi = main_scale;
-
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 330");
-    }
 
     // configure global opengl state
     // -----------------------------
@@ -252,12 +482,6 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
-        {
-            ImGui_ImplGlfw_Sleep(10);
-            continue;
-        }
-
         processInput(window);
 
         // per-frame time logic
@@ -332,50 +556,12 @@ int main()
         // world transformation
         float dist = radi_sun + 3 * radi_mercury;
         drawPlanet(dist, radi_mercury, revp_mercury, rotp_mercury, sun_model, _planetShader, texture_mercury, sphereVAO, nSphereVert);
-/*         float dist = radi_sun + 3 * radi_mercury;
-        model = sun_model;
-        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_mercury,
-                            glm::vec3(0.0f, 1.0f, 0.0f)); // the revolution of the earth
-        model = glm::translate(
-            model, glm::vec3(dist, 0.0f, 0.0f)); // the translation of the earth from the sun
-        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_mercury,
-                            glm::vec3(0.0f, 1.0f, 0.0f)); // the rotation of the earth
-        model = glm::scale(model, glm::vec3(radi_mercury, radi_mercury, radi_mercury));
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        _planetShader.setUniformMatrix4f("model", model);
-
-        // bind textures on corresponding texture units
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_mercury);
-
-        // render the sphere
-        glBindVertexArray(sphereVAO);
-        glDrawArrays(GL_TRIANGLES, 0, nSphereVert); */
 
         // venus
         // -----------
         // world transformation
         dist = dist + 3 * radi_venus;
         drawPlanet(dist, radi_venus, revp_venus, rotp_venus, sun_model, _planetShader, texture_venus, sphereVAO, nSphereVert);
-
-/*         model = sun_model;
-        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / revp_venus,
-                            glm::vec3(0.0f, 1.0f, 0.0f)); // the revolution of the earth
-        model = glm::translate(
-            model, glm::vec3(dist, 0.0f, 0.0f)); // the translation of the earth from the sun
-        model = glm::rotate(model, (float)glfwGetTime() * rot_speed / rotp_venus,
-                            glm::vec3(0.0f, 1.0f, 0.0f)); // the rotation of the earth
-        model = glm::scale(model, glm::vec3(radi_venus, radi_venus, radi_venus));
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        _planetShader.setUniformMatrix4f("model", model);
-
-        // bind textures on corresponding texture units
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_venus);
-
-        // render the sphere
-        glBindVertexArray(sphereVAO);
-        glDrawArrays(GL_TRIANGLES, 0, nSphereVert); */
 
         // earth
         // -----------
@@ -444,33 +630,11 @@ int main()
         // -----------
         dist = dist + 3 * radi_neptune;
         drawPlanet(dist, radi_neptune, revp_neptune, rotp_neptune, sun_model, _planetShader, texture_neptune, sphereVAO, nSphereVert);
-
-        if (showImGuiOverlay)
-        {
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-
-            if (ImGui::Begin("Solar System!", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-            {
-                ImGui::Text("Press F1 to toggle this overlay");
-                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 
-                       1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            }
-            ImGui::End();
-            
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
     }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
@@ -487,36 +651,6 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-    {
-        if (!isF1KeyPressed)
-        {
-            showImGuiOverlay = !showImGuiOverlay;
-
-            if (showImGuiOverlay)
-            {
-                // Show cursor when ImGui overlay is active
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            }
-            else
-            {
-                // Hide cursor for camera movement
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                firstMouse = true; // Reset mouse state
-            }
-            isF1KeyPressed = true;
-        }
-    }
-    else 
-    {
-        isF1KeyPressed = false;
-    }
-
-    ImGuiIO &io = ImGui::GetIO();
-    bool imguiWantsInput = showImGuiOverlay && (io.WantCaptureKeyboard || io.WantCaptureMouse);
-    if (imguiWantsInput) 
-        return;
-
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -543,10 +677,6 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
-    ImGuiIO &io = ImGui::GetIO();
-    if (io.WantCaptureMouse || showImGuiOverlay)
-        return;
-
     if (firstMouse)
     {
         lastX = xpos;
@@ -750,7 +880,7 @@ void loadTexture(GLuint &textureID, const char *path)
     }
     else
     {
-        LOG_ERROR("Failed to load texture at: {}", path);
+        std::fprintf(stderr, "Failed to load texture at: %s\n", path);
     }
     stbi_image_free(data);
 }

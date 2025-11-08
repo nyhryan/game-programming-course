@@ -1,8 +1,8 @@
-set(TARGET week7)
-add_executable(${TARGET} j13.human.cpp)
+set(TARGET week6-hw)
+add_executable(${TARGET} solarsystem_sun_2planets_hw.cpp)
 
 target_compile_definitions(${TARGET} PRIVATE
-    RESOURCE_PATH_PREFIX="${RESOURCES_DIR}/shaders/"
+    RESOURCE_PATH_PREFIX="${RESOURCES_DIR}/"
 )
 
 target_sources(${TARGET}
@@ -13,7 +13,6 @@ target_sources(${TARGET}
         ${COMMON_HEADER_DIR}/shader.cpp
         ${COMMON_HEADER_DIR}/utility.hpp
         ${COMMON_HEADER_DIR}/type.hpp
-        j13.human.h
         ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/imgui_draw.cpp
@@ -21,7 +20,7 @@ target_sources(${TARGET}
         ${IMGUI_DIR}/imgui_widgets.cpp
         ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
- "AnimationState.h")
+)
 
 set_target_properties(${TARGET} PROPERTIES 
     CXX_STANDARD 20
