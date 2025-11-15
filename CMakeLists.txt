@@ -8,6 +8,13 @@ set(CXX_STANDARD_REQUIRED TRUE)
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(MSVC)
+    add_compile_options(
+        "/Zc:preprocessor"
+        "/wd4819"
+    )
+endif()
+
 # glfw
 FetchContent_Declare(
     glfw
@@ -55,5 +62,6 @@ add_subdirectory(projects/week5-2)
 add_subdirectory(projects/week7)
 add_subdirectory(projects/week6-hw)
 add_subdirectory(projects/week10)
+add_subdirectory(projects/week10-hw)
 add_subdirectory(projects/week11)
 add_subdirectory(projects/week11-hw)

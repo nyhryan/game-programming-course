@@ -14,7 +14,7 @@
 #include "camera.h"
 
 #include <iostream>
-using namespace std;
+#include <vector>
 
 #define nParticles 1000
 #define nVertAttri 6
@@ -25,7 +25,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path);
-unsigned int loadCubemap(vector<std::string> faces);
+unsigned int loadCubemap(std::vector<std::string> faces);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
