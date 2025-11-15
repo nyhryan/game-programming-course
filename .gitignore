@@ -4,3 +4,4 @@ cmake-build-debug-visual-studio/
 .cache/
 .vs/
 desktop.ini
+.DS_Store
