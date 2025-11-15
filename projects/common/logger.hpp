@@ -17,6 +17,8 @@ private:
 
 } // namespace GameProgramming
 
+#define LOG_INIT() ::GameProgramming::Logger::init()
+
 #define LOG_CRITICAL(fmt, ...) ::GameProgramming::Logger::GetLogger()->critical(fmt __VA_OPT__(,) __VA_ARGS__)
 #define LOG_DEBUG(fmt, ...)    ::GameProgramming::Logger::GetLogger()->debug(fmt __VA_OPT__(, ) __VA_ARGS__)
 #define LOG_ERROR(fmt, ...)    ::GameProgramming::Logger::GetLogger()->error(fmt __VA_OPT__(, ) __VA_ARGS__)

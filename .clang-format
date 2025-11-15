@@ -5,7 +5,7 @@ AllowShortLambdasOnASingleLine: 'None'
 AlwaysBreakTemplateDeclarations: 'Yes'
 BreakBeforeBraces: 'Allman'
 IndentWidth: '4'
-ColumnLimit: '100'
+ColumnLimit: '140'
 Language: Cpp
 PointerAlignment: Right
 SortIncludes: 'false'

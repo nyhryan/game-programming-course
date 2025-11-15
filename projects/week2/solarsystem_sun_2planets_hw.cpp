@@ -322,9 +322,8 @@ int main()
         // material properties
         _planetShader.setUniformVec3("material.ambient", 0.5f, 0.5f, 0.5f);
         _planetShader.setUniformVec3("material.diffuse", 0.9f, 0.9f, 0.9f);
-        _planetShader.setUniformVec3(
-            "material.specular", 0.5f, 0.5f,
-            0.5f); // specular lighting doesn't have full effect on this object's material
+        // specular lighting doesn't have full effect on this object's material
+        _planetShader.setUniformVec3("material.specular", 0.5f, 0.5f,0.5f);
         _planetShader.setUniformFloat("material.shininess", 20.0f);
 
         // mercury
