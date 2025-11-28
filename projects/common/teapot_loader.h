@@ -3,9 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
 #include <vector>
-using namespace std;
 
 class Teapot
 {
@@ -16,14 +14,14 @@ public:
 	Teapot(const char* filename, std::vector<float> &data, unsigned int vertAttrib)
 	{
 		nVertFloats = vertAttrib;
-		err = loadVertexData(string(filename), data);
+		err = loadVertexData(std::string(filename), data);
 		nVertNum = int(size(data) / nVertFloats);
 	};
 	bool loadVertexData(std::string filename, std::vector<float> &data) {
 		// read vertex data from vbo file in plain text format
-		ifstream input(filename.c_str());
+		std::ifstream input(filename.c_str());
 		if (!input) { // cast istream to bool to see if something went wrong
-			cerr << "Can not find vertex data file " << filename << endl;
+			std::cerr << "Can not find vertex data file " << filename << std::endl;
 			return false;
 		}
 
